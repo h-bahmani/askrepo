@@ -6,12 +6,34 @@
 
 Ask natural-language questions about a codebase from the command line or an HTTP API. The agent doesn't get the whole repo dumped into its context — it has to call tools (`search_code`, `read_file`, `list_files`) to go find the answer, the same way a person would, and it cites the file/line ranges it actually looked at.
 
-```
-$ askrepo ask "How does authentication work here?"
-Requests are authenticated with a bearer token checked in `verify_request`
-(src/auth.py:14-29), which compares the header against ASKREPO_API_KEY.
+Real output, asking askrepo about its own repository:
 
-Sources: src/auth.py:14-29, src/api.py:31-38
+```
+$ askrepo ask "what is about"
+The repository implements askrepo, a tool that lets you ask natural-language questions about a
+codebase from the command line or via an HTTP API.
+
+Instead of loading the whole repository into an LLM's context, askrepo builds a searchable index
+of the source files (chunked with overlapping line numbers and indexed with BM25). When a
+question is asked, an agent loop calls the tools search_code, read_file, and list_files to
+retrieve relevant chunks, then composes an answer together with citations to the exact file-line
+ranges (e.g., src/auth.py:14-29) [README.md:1-34].
+
+Key components (as described in the README) include:
+
+  Module        Role
+  chunking.py   Walks the repo, skips noise (e.g., VCS files, virtual-env binaries), and splits
+                each file into overlapping line-range chunks.
+  retrieval.py  Indexes those chunks with the BM25 algorithm (rank-bm25).
+  agent.py      Runs a bounded tool-calling loop where the LLM decides which tool to invoke,
+                receives the results, and eventually produces an answer with sources.
+  llm.py        Handles communication with any OpenAI-compatible provider (OpenAI, Groq,
+                OpenRouter, local server).
+
+The project provides a CLI (askrepo ask ...) and a server mode (askrepo serve ...) so you can
+query a repository locally or via HTTP [README.md:35-57]. Configuration is done through
+environment variables prefixed with ASKREPO_ (e.g., API key, model name, index path)
+[README.md:69-84].
 ```
 
 ## Why
