@@ -77,6 +77,7 @@ The test suite doesn't call a real LLM — the agent loop is tested against a sc
 - BM25 is lexical, not semantic: it won't find a relevant chunk that uses entirely different wording than the query.
 - One repo per index; there's no cross-repo search.
 - The index is a local file, not persisted anywhere shared — fine for one developer on one machine, not for a team.
+- Conversation size isn't budgeted against the provider's context/rate limit. A free-tier key with a small tokens-per-minute cap (e.g. Groq's on-demand tier) can reject a request once a few tool results accumulate; askrepo surfaces this as a clear error (`LLMError`) instead of a stack trace, but doesn't yet retry with a trimmed history.
 
 ## License
 

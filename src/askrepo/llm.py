@@ -7,10 +7,18 @@ pointing `base_url` at it. Swapping providers is a config change, not a code cha
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+import openai
 from openai import OpenAI
+
+
+class LLMError(Exception):
+    """A provider call failed for a reason the caller should be told about
+    plainly (rate limit, request too large, bad key, ...), not via a raw
+    stack trace from the SDK three layers down."""
 
 
 @dataclass(frozen=True)
@@ -40,13 +48,19 @@ class OpenAICompatibleClient:
     def complete(
         self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]
     ) -> ChatResponse:
-        import json
+        try:
+            response = self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,
+                tools=tools or None,
+            )
+        except openai.APIStatusError as exc:
+            detail = exc.body.get("error", {}).get("message") if isinstance(exc.body, dict) else None
+            raise LLMError(
+                f"the model provider rejected the request (HTTP {exc.status_code}): "
+                f"{detail or exc.message}"
+            ) from exc
 
-        response = self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-            tools=tools or None,
-        )
         choice = response.choices[0].message
         tool_calls = [
             ToolCall(

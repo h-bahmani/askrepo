@@ -11,7 +11,7 @@ from rich.markdown import Markdown
 from askrepo.agent import run_agent
 from askrepo.chunking import chunk_repository
 from askrepo.config import get_settings
-from askrepo.llm import OpenAICompatibleClient
+from askrepo.llm import LLMError, OpenAICompatibleClient
 from askrepo.retrieval import CodeIndex
 from askrepo.tools import ToolBox
 
@@ -59,7 +59,12 @@ def ask(
         base_url=settings.llm_base_url,
     )
 
-    result = run_agent(question, llm=llm, toolbox=toolbox)
+    try:
+        result = run_agent(question, llm=llm, toolbox=toolbox)
+    except LLMError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
     console.print(Markdown(result.answer))
     if result.sources:
         console.print("\n[dim]Sources:[/dim] " + ", ".join(result.sources))

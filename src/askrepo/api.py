@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from askrepo.agent import run_agent
 from askrepo.config import get_settings
-from askrepo.llm import OpenAICompatibleClient
+from askrepo.llm import LLMError, OpenAICompatibleClient
 from askrepo.retrieval import CodeIndex
 from askrepo.tools import ToolBox
 
@@ -48,7 +48,10 @@ def build_app(repo_root: Path) -> FastAPI:
             api_key=settings.llm_api_key,
             base_url=settings.llm_base_url,
         )
-        result = run_agent(request.question, llm=llm, toolbox=toolbox)
+        try:
+            result = run_agent(request.question, llm=llm, toolbox=toolbox)
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         return AskResponse(answer=result.answer, sources=result.sources, iterations=result.iterations)
 
     return app
