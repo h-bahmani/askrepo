@@ -1,5 +1,9 @@
 # askrepo
 
+[![CI](https://github.com/h-bahmani/askrepo/actions/workflows/ci.yml/badge.svg)](https://github.com/h-bahmani/askrepo/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+
 Ask natural-language questions about a codebase from the command line or an HTTP API. The agent doesn't get the whole repo dumped into its context — it has to call tools (`search_code`, `read_file`, `list_files`) to go find the answer, the same way a person would, and it cites the file/line ranges it actually looked at.
 
 ```
