@@ -82,6 +82,12 @@ def run_agent(
                 result = toolbox.call(call.name, call.arguments)
             except ToolError as exc:
                 result = json.dumps({"error": str(exc)})
+            except Exception as exc:  # noqa: BLE001 - a tool bug must not kill the session
+                # The model controls tool arguments and can pass things a tool's
+                # author never anticipated (e.g. an empty glob pattern). Report it
+                # as a normal tool error instead of crashing the whole run -- the
+                # model can usually recover by trying something else.
+                result = json.dumps({"error": f"{type(exc).__name__}: {exc}"})
             else:
                 sources.extend(_extract_sources(call.name, result))
             messages.append({"role": "tool", "tool_call_id": call.id, "content": result})

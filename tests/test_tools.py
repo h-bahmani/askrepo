@@ -52,6 +52,18 @@ def test_list_files_matches_glob(toolbox: ToolBox) -> None:
     assert sorted(payload) == ["NOTES.md", "README.md"]
 
 
+def test_list_files_treats_empty_pattern_as_default(toolbox: ToolBox) -> None:
+    # A model can pass an explicit "" instead of omitting the argument, which
+    # bypasses the Python default and used to blow up inside Path.glob("").
+    payload = json.loads(toolbox.call("list_files", {"pattern": ""}))
+    assert "src/main.py" in payload
+
+
+def test_list_files_rejects_a_malformed_pattern(toolbox: ToolBox) -> None:
+    with pytest.raises(ToolError):
+        toolbox.call("list_files", {"pattern": "***"})
+
+
 def test_unknown_tool_raises(toolbox: ToolBox) -> None:
     with pytest.raises(ToolError):
         toolbox.call("delete_repo", {})

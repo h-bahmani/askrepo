@@ -130,9 +130,13 @@ class ToolBox:
         return json.dumps({"path": path, "start_line": start, "end_line": end, "text": body})
 
     def _list_files(self, pattern: str = "**/*") -> str:
-        matches = [
-            p.relative_to(self.root).as_posix()
-            for p in sorted(self.root.glob(pattern))
-            if p.is_file()
-        ]
+        # The model sometimes passes an explicit empty string rather than omitting
+        # the argument, which bypasses the default above; Path.glob("") raises
+        # ValueError, so treat "falsy" the same as "not given".
+        pattern = pattern or "**/*"
+        try:
+            paths = sorted(self.root.glob(pattern))
+        except ValueError as exc:
+            raise ToolError(f"invalid glob pattern {pattern!r}: {exc}") from exc
+        matches = [p.relative_to(self.root).as_posix() for p in paths if p.is_file()]
         return json.dumps(matches[:200])

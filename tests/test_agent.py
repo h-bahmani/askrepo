@@ -84,3 +84,30 @@ def test_agent_reports_tool_errors_instead_of_crashing(tmp_path: Path) -> None:
 
     assert "doesn't exist" in result.answer
     assert result.sources == []
+
+
+class ExplodingToolBox:
+    """A tool that raises a plain (non-ToolError) exception -- e.g. a bug the
+    tool's author didn't anticipate. The agent loop must survive this."""
+
+    def schemas(self):
+        return []
+
+    def call(self, name, arguments):
+        raise RuntimeError("boom")
+
+
+def test_agent_survives_an_unexpected_tool_exception() -> None:
+    llm = ScriptedLLMClient(
+        [
+            ChatResponse(
+                content=None,
+                tool_calls=[ToolCall(id="call_1", name="search_code", arguments={"query": "x"})],
+            ),
+            ChatResponse(content="Something went wrong, but I recovered.", tool_calls=[]),
+        ]
+    )
+
+    result = run_agent("anything", llm=llm, toolbox=ExplodingToolBox())
+
+    assert result.answer == "Something went wrong, but I recovered."
